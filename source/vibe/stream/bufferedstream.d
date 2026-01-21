@@ -58,6 +58,7 @@ struct BufferedStream(S) {
 			this.bufferSize = 1 << this.bufferSizeBits;
 			this.buffers = Mallocator.instance.makeArray!Buffer(buffer_count);
 			this.buffermemory = Mallocator.instance.makeArray!ubyte(buffer_count * buffer_size);
+			assert(this.buffermemory !is null, "Failed to allocate stream buffer!");
 			foreach (i, ref b; this.buffers)
 				b.memory = this.buffermemory[i * buffer_size .. (i+1) * buffer_size];
 			this.size = stream.size;
