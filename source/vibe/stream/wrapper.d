@@ -108,7 +108,11 @@ class ProxyStream : Stream {
 
 	void flush() { m_output.flush(); }
 
-	void finalize() { m_output.finalize(); }
+	void finalize()
+	{
+		m_output.finalize();
+		m_output = InterfaceProxy!OutputStream.init;
+	}
 }
 
 
@@ -156,6 +160,12 @@ class ConnectionProxyStream : ConnectionStream {
 		return m_connection.connected;
 	}
 
+	/** Closes the underlying connection and gives up ownership of the wrapped
+		streams.
+
+		Note that the `.underlying` property will return a null stream after
+		calling `close()`.
+	*/
 	void close()
 	{
 		if (!m_connection)
@@ -163,6 +173,11 @@ class ConnectionProxyStream : ConnectionStream {
 
 		if (m_connection.connected) finalize();
 		m_connection.close();
+
+		m_connection = InterfaceProxy!ConnectionStream.init;
+		m_output = InterfaceProxy!OutputStream.init;
+		m_input = InterfaceProxy!InputStream.init;
+		m_underlying = InterfaceProxy!Stream.init;
 	}
 
 	bool waitForData(Duration timeout = 0.seconds)
@@ -205,7 +220,11 @@ class ConnectionProxyStream : ConnectionStream {
 
 	void flush() { m_output.flush(); }
 
-	void finalize() { m_output.finalize(); }
+	void finalize()
+	{
+		m_output.finalize();
+		m_output = InterfaceProxy!OutputStream.init;
+	}
 }
 
 
