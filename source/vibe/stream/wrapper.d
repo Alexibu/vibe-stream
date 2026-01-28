@@ -92,23 +92,41 @@ class ProxyStream : Stream {
 
 	@property bool dataAvailableForRead() { return m_input ? m_input.dataAvailableForRead : false; }
 
-	const(ubyte)[] peek() { return m_input.peek(); }
+	const(ubyte)[] peek() { return m_input ? m_input.peek() : null; }
 
-	size_t read(scope ubyte[] dst, IOMode mode) { return m_input.read(dst, mode); }
+	size_t read(scope ubyte[] dst, IOMode mode)
+	{
+		if (!m_input) throw new Exception("Attempt to read from closed stream");
+		return m_input.read(dst, mode);
+	}
 
 	alias read = Stream.read;
 
 	static if (is(typeof(.OutputStream.outputStreamVersion)) && .OutputStream.outputStreamVersion > 1) {
-		override size_t write(scope const(ubyte)[] bytes, IOMode mode) { return m_output.write(bytes, mode); }
+		override size_t write(scope const(ubyte)[] bytes, IOMode mode)
+		{
+			if (!m_output) throw new Exception("Attempt to write to closed stream");
+			return m_output.write(bytes, mode);
+		}
 	} else {
-		override size_t write(in ubyte[] bytes, IOMode mode) { return m_output.write(bytes, mode); }
+		override size_t write(in ubyte[] bytes, IOMode mode)
+		{
+			if (!m_output) throw new Exception("Attempt to write to closed stream");
+			return m_output.write(bytes, mode);
+		}
 	}
 
 	alias write = Stream.write;
 
-	void flush() { m_output.flush(); }
+	void flush() { if (m_output) m_output.flush(); }
 
-	void finalize() { m_output.finalize(); }
+	void finalize()
+	{
+		if (!m_output) return;
+
+		m_output.finalize();
+		m_output = InterfaceProxy!OutputStream.init;
+	}
 }
 
 
@@ -156,6 +174,12 @@ class ConnectionProxyStream : ConnectionStream {
 		return m_connection.connected;
 	}
 
+	/** Closes the underlying connection and gives up ownership of the wrapped
+		streams.
+
+		Note that the `.underlying` property will return a null stream after
+		calling `close()`.
+	*/
 	void close()
 	{
 		if (!m_connection)
@@ -163,6 +187,11 @@ class ConnectionProxyStream : ConnectionStream {
 
 		if (m_connection.connected) finalize();
 		m_connection.close();
+
+		m_connection = InterfaceProxy!ConnectionStream.init;
+		m_output = InterfaceProxy!OutputStream.init;
+		m_input = InterfaceProxy!InputStream.init;
+		m_underlying = InterfaceProxy!Stream.init;
 	}
 
 	bool waitForData(Duration timeout = 0.seconds)
@@ -189,23 +218,41 @@ class ConnectionProxyStream : ConnectionStream {
 
 	@property bool dataAvailableForRead() { return m_input ? m_input.dataAvailableForRead : false; }
 
-	const(ubyte)[] peek() { return m_input.peek(); }
+	const(ubyte)[] peek() { return m_input ? m_input.peek() : null; }
 
-	size_t read(scope ubyte[] dst, IOMode mode) { return m_input.read(dst, mode); }
+	size_t read(scope ubyte[] dst, IOMode mode)
+	{
+		if (!m_input) throw new Exception("Attempt to read from closed stream");
+		return m_input.read(dst, mode);
+	}
 
 	alias read = ConnectionStream.read;
 
 	static if (is(typeof(.OutputStream.outputStreamVersion)) && .OutputStream.outputStreamVersion > 1) {
-		size_t write(scope const(ubyte)[] bytes, IOMode mode) { return m_output.write(bytes, mode); }
+		size_t write(scope const(ubyte)[] bytes, IOMode mode)
+		{
+			if (!m_output) throw new Exception("Attempt to write to closed stream");
+			return m_output.write(bytes, mode);
+		}
 	} else {
-		size_t write(in ubyte[] bytes, IOMode mode) { return m_output.write(bytes, mode); }
+		size_t write(in ubyte[] bytes, IOMode mode)
+		{
+			if (!m_output) throw new Exception("Attempt to write to closed stream");
+			return m_output.write(bytes, mode);
+		}
 	}
 
 	alias write = ConnectionStream.write;
 
-	void flush() { m_output.flush(); }
+	void flush() { if (m_output) m_output.flush(); }
 
-	void finalize() { m_output.finalize(); }
+	void finalize()
+	{
+		if (!m_output) return;
+
+		m_output.finalize();
+		m_output = InterfaceProxy!OutputStream.init;
+	}
 }
 
 
