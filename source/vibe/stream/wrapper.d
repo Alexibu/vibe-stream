@@ -146,6 +146,7 @@ class ConnectionProxyStream : ConnectionStream {
 		InterfaceProxy!Stream m_underlying;
 		InterfaceProxy!InputStream m_input;
 		InterfaceProxy!OutputStream m_output;
+		bool m_closed = false;
 	}
 
 	/// private
@@ -169,7 +170,7 @@ class ConnectionProxyStream : ConnectionStream {
 	@property bool connected()
 	const {
 		if (!m_connection)
-			return true;
+			return !m_closed;
 
 		return m_connection.connected;
 	}
@@ -182,6 +183,8 @@ class ConnectionProxyStream : ConnectionStream {
 	*/
 	void close()
 	{
+		m_closed = true;
+
 		if (!m_connection)
 			return;
 
